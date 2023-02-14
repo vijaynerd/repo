@@ -20,11 +20,11 @@ cashflow_data = []
 cashflow_data_sensex = []
 
 
-start = "2010-11-01"
+start = "2001-11-01"
 end = '2023-2-08'
-sensex_xirr = 12.17
+sensex_xirr = 20
 arbitrage_xirr = 6
-sip_amount = 10000
+sip_amount = 0
 sip_day = 5
 #investments={pd.Timestamp('2020-03-16'):300000}
 investments={}
@@ -56,7 +56,10 @@ delta = (sensex_ideal.iat[len_sensex,0] - sensex_ideal.iat[0,0]) / len_sensex
 i = 0
 
 yr_month_old = ""
+algo_recommendation_buy = 0
 for ind in sensex_ideal.index:
+    algo_sip = 0
+    algo_recommendation_buy = 0
     start_ind = int(i / 365)
     if((start_ind + 1) * 365 > len_sensex):
         end_ind = len_sensex
@@ -70,6 +73,8 @@ for ind in sensex_ideal.index:
         sensex_ideal['Open'][ind] =  sensex_ideal.iat[0,0] + compound_interest(sensex_ideal.iat[0,0],sensex_xirr,yrs)
         arbitrage_ideal['Open'][ind] =  arbitrage_ideal.iat[0,0] + compound_interest(arbitrage_ideal.iat[0,0],arbitrage_xirr,yrs)
     
+    sensex_advantage['Open'][ind] = ((sensex['Open'][ind] - sensex_ideal['Open'][ind] ) / sensex_ideal['Open'][ind]) * 100
+    
     if investments.get(ind) is not None:
         nonsip = investments[ind]
     else:
@@ -78,10 +83,16 @@ for ind in sensex_ideal.index:
     if (yr_month != yr_month_old and i > 0 and ind.day >= 5):
         sip = sip_amount
         yr_month_old = yr_month
+        if sensex_advantage['Open'][ind] < -5:
+            algo_recommendation_buy = int((0 - sensex_advantage['Open'][ind]) / 5 ) * 5
+            if(algo_recommendation_buy > 0):
+                print("Buy recommendation ",ind," swap arbitrage to sense %",algo_recommendation_buy)
+                algo_sip = algo_recommendation_buy * 50000
     else:
         sip = 0
-     
-    total_inv = sip + nonsip
+    
+        
+    total_inv = sip + nonsip + algo_sip
         
     if i > 0:
         sensex_sip['Open'][ind] = sensex_sip.iat[i-1,0] + total_inv / sensex['Open'][ind]
@@ -93,9 +104,7 @@ for ind in sensex_ideal.index:
     if (total_inv !=0):
         cashflow_data.append((ind,(0-total_inv)))
             
-    delta_s = (sensex_ideal.iat[end_ind,0] - sensex_ideal.iat[start_ind,0]) / (end_ind - start_ind)
     
-    sensex_advantage['Open'][ind] = ((sensex['Open'][ind] - sensex_ideal['Open'][ind] ) / sensex_ideal['Open'][ind]) * 100
         
         #sensex_ideal['Open'][ind] =  sensex_ideal.iat[start_ind,0] + delta_s
     i = i + 1
@@ -111,7 +120,8 @@ cashflow_data_sensex.append((pd.Timestamp(datetime.date(2023, 2, 22)),int(sensex
 arb_xirr = fc.get_xirr(cashflow_data)
 sip_sensex_xirr = fc.get_xirr(cashflow_data_sensex)
 
-print("XIRR for arbitrage" , fc.get_xirr(cashflow_data))
+print("XIRR for arbitrage" , arb_xirr)
+print("XIRR for Sensex" , sip_sensex_xirr)
 
 #fig, axes = plt.subplots(nrows=2, ncols=1)
 
