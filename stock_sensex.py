@@ -18,7 +18,9 @@ def compound_interest(principal, rate, time):
 
 cashflow_data = []
 cashflow_data_sensex = []
-
+total_balance = 0
+sensex_balance = 0
+arb_balance = 0
 
 start = "2001-11-01"
 end = '2023-2-08'
@@ -94,7 +96,7 @@ for ind in sensex_ideal.index:
         
     total_inv = sip + nonsip + algo_sip
         
-    if i > 0:
+    if i > 0: 
         sensex_sip['Open'][ind] = sensex_sip.iat[i-1,0] + total_inv / sensex['Open'][ind]
         sensex_sip_value['Open'][ind] = sensex_sip['Open'][ind] * sensex['Open'][ind]
         arbitrage_sip['Open'][ind] = arbitrage_sip.iat[i-1,0] + total_inv / arbitrage_ideal['Open'][ind]
