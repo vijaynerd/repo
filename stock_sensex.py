@@ -173,8 +173,8 @@ def hybrid_investment(inv_day):
 
 
     sensex['Open'].plot(label = 'sensex', figsize = (15,7))
-    sensex_ideal['Open'].plot(label = 'sensex_ideal 12%')
-    arbitrage_ideal['Open'].plot(label = 'arbitrage 6%')
+    sensex_ideal['Open'].plot(label = 'sensex_ideal '+str(sensex_xirr))
+    arbitrage_ideal['Open'].plot(label = 'arbitrage '+str(arb_xirr))
 
     #sensex_sip_value['Open'].plot(label = 'Sensex sip 50000')
     #inv_value['Open'].plot(label = 'Invested amount')
