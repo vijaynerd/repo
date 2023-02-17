@@ -25,13 +25,13 @@ def hybrid_investment(inv_day):
     sensex_balance = 0
     arb_balance = 0
 
-    start = "2015-01-20"
+    start = "2001-01-20"
     end = '2023-2-08'
-    sensex_xirr = 12
+    sensex_xirr = 14
     arbitrage_xirr = 6
     sip_amount = 0
     sip_day = inv_day
-    investments={pd.Timestamp('2010-01-25'):30000000}
+    investments={pd.Timestamp('2008-01-30'):30000000}
     #investments={}
     sensex = yf.download('^BSESN',start,end)
     sensex_ideal = sensex.copy()
