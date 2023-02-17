@@ -25,13 +25,13 @@ def hybrid_investment(inv_day):
     sensex_balance = 0
     arb_balance = 0
 
-    start = "2012-01-03"
+    start = "2015-01-20"
     end = '2023-2-08'
     sensex_xirr = 12
-    arbitrage_xirr = 3
+    arbitrage_xirr = 6
     sip_amount = 0
     sip_day = inv_day
-    investments={pd.Timestamp('2022-01-04'):30000000}
+    investments={pd.Timestamp('2010-01-25'):30000000}
     #investments={}
     sensex = yf.download('^BSESN',start,end)
     sensex_ideal = sensex.copy()
@@ -83,7 +83,7 @@ def hybrid_investment(inv_day):
         sensex_advantage['Open'][ind] = ((sensex['Open'][ind] - sensex_ideal['Open'][ind] ) / sensex_ideal['Open'][ind]) * 100
         
         if investments.get(ind) is not None:
-            #print("invest ",ind,investments[ind])
+            print("invest ",ind,investments[ind])
             nonsip = investments[ind]
         else:
             nonsip = 0
@@ -93,29 +93,29 @@ def hybrid_investment(inv_day):
         if (yr_month != yr_month_old and i > 0 and ind.day >= sip_day):
             sip = sip_amount
             yr_month_old = yr_month
-            #print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
+            print("sensex advantage ",ind,sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
             if sensex_advantage['Open'][ind] < -5:
                 algo_recommendation_swap_sensex = int((0 - sensex_advantage['Open'][ind]) / 5 ) * 5
                 algo_recommendation_swap_sensex = min(10,algo_recommendation_swap_sensex)
                 if(algo_recommendation_swap_sensex > 0 and arb_balance > 10):
-                    #print("Swap recommendation ",ind," swap arbitrage to sensex %",algo_recommendation_swap_sensex)
+                    print("Swap recommendation ",ind," swap arbitrage to sensex %",algo_recommendation_swap_sensex)
                     algo_swap_sensex = algo_recommendation_swap_sensex * arb_balance * arbitrage_ideal['Open'][ind] / 100
                     arb_balance = arb_balance - algo_swap_sensex / arbitrage_ideal['Open'][ind]
                     sensex_balance = sensex_balance + algo_swap_sensex / sensex_ideal['Open'][ind]
-                    #print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance * arbitrage_ideal['Open'][ind] ," sensex balance",sensex_balance * sensex_ideal['Open'][ind],"Total Bal", arb_balance * arbitrage_ideal['Open'][ind] + sensex_balance * sensex_ideal['Open'][ind])
-                    #print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
+                    print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance * arbitrage_ideal['Open'][ind] ," sensex balance",sensex_balance * sensex_ideal['Open'][ind],"Total Bal", arb_balance * arbitrage_ideal['Open'][ind] + sensex_balance * sensex_ideal['Open'][ind])
+                    print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
 
             if sensex_advantage['Open'][ind] > 5:
                 algo_recommendation_swap_arb = int((sensex_advantage['Open'][ind]) / 5 ) * 5
                 algo_recommendation_swap_arb = min(algo_recommendation_swap_arb,30)
                 if(algo_recommendation_swap_arb > 0 and sensex_balance > 10):
-                    #print("Swap recommendation ",ind," swap sensex to arbitrage %",algo_recommendation_swap_arb)
+                    print("Swap recommendation ",ind," swap sensex to arbitrage %",algo_recommendation_swap_arb)
                     algo_swap_arb = algo_recommendation_swap_arb * sensex_balance * sensex_ideal['Open'][ind] / 100
                     sensex_balance = sensex_balance - algo_swap_arb / sensex_ideal['Open'][ind]
                     arb_balance = arb_balance + algo_swap_arb / arbitrage_ideal['Open'][ind]
                     #print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
-                    #print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance * arbitrage_ideal['Open'][ind] ," sensex balance",sensex_balance * sensex_ideal['Open'][ind],"Total Bal", arb_balance * arbitrage_ideal['Open'][ind] + sensex_balance * sensex_ideal['Open'][ind])
-                    #print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
+                    print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance * arbitrage_ideal['Open'][ind] ," sensex balance",sensex_balance * sensex_ideal['Open'][ind],"Total Bal", arb_balance * arbitrage_ideal['Open'][ind] + sensex_balance * sensex_ideal['Open'][ind])
+                    print("sensex advantage ",sensex_advantage['Open'][ind],"arb_balance",arb_balance," sensex balance",sensex_balance)
         else:
             sip = 0
         
@@ -152,17 +152,19 @@ def hybrid_investment(inv_day):
     cashflow_data_sensex.append((pd.Timestamp(datetime.date(2023, 2, 22)),int(sensex_sip_value['Open'].iloc[-1])))
     cashflow_data_hybrid.append((pd.Timestamp(datetime.date(2023, 2, 22)),int(sensex_balance_value['Open'].iloc[-1]) + int(arb_balance_value['Open'].iloc[-1])))
 
-    #arb_xirr = fc.get_xirr(cashflow_data)
+    print(cashflow_data)
+    print(cashflow_data_sensex)
+    arb_xirr = fc.get_xirr(cashflow_data)
 #    print(cashflow_data_hybrid[0])
 #    print(cashflow_data_hybrid[1])
-    #sip_sensex_xirr = fc.get_xirr(cashflow_data_sensex)
+    sip_sensex_xirr = fc.get_xirr(cashflow_data_sensex)
 
     hybrid_xirr = fc.get_xirr(cashflow_data_hybrid)
 
-    #print("XIRR for savings" , arb_xirr)
-    #print("XIRR for Sensex" , sip_sensex_xirr)
+    print("XIRR for savings" , arb_xirr)
+    print("XIRR for Sensex" , sip_sensex_xirr)
     print("XIRR for Hybrid" , hybrid_xirr)
-    return
+    
     #fig, axes = plt.subplots(nrows=2, ncols=1)
 
     fig = plt.figure()
@@ -208,7 +210,7 @@ def hybrid_investment(inv_day):
     plt.legend()
     plt.show()
 
-
+    return
     exit(0)
 
     sensex['Volume'].plot(label = 'sensex', figsize = (15,7))
@@ -251,6 +253,6 @@ def hybrid_investment(inv_day):
     plt.show()
 
 
-for i in range(1,31):
+for i in range(5,6):
     print("day of investment",i)
     hybrid_investment(i)
