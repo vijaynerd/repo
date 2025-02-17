@@ -2,6 +2,9 @@ import requests
 import json
 import re
 import fitz  # PyMuPDF
+import pytesseract
+from pdf2image import convert_from_path
+
 
 class LLMChatClient:
     def __init__(self, server_ip, port=11434):
@@ -12,7 +15,7 @@ class LLMChatClient:
             "model": "deepseek-r1",  # Replace with your model name if different
             "prompt": f"{context}\n\n{prompt}",
             "system_message": "You are a helpful assistant that gives concise answers.",
-            "temperature": 0.9
+            "temperature": 0.1
         }
         try:
             response = requests.post(self.server_url, headers={"Content-Type": "application/json"}, data=json.dumps(payload))
@@ -34,14 +37,24 @@ class LLMChatClient:
             return str(e)
 
 def extract_text_from_pdf(pdf_path, start_page=None, end_page=None):
-    doc = fitz.open(pdf_path)
-    text = ""
-    start_page = start_page or 0
-    end_page = end_page or doc.page_count - 1
+        # Convert PDF pages to images
+    pages = convert_from_path(pdf_path, 300)  # 300 is the DPI (dots per inch)
 
-    for page_num in range(start_page, end_page + 1):
-        page = doc.load_page(page_num)
-        text += page.get_text()
+    # Extract text from each page
+    text = ""
+    pageno = 1
+    for page in pages:
+        text += "Pageno:" + str(pageno) + "\n" + pytesseract.image_to_string(page)
+        pageno += 1
+
+    # doc = fitz.open(pdf_path)
+    # text = ""
+    # start_page = start_page or 0
+    # end_page = end_page or doc.page_count - 1
+
+    # for page_num in range(start_page, end_page + 1):
+    #     page = doc.load_page(page_num)
+    #     text += page.get_text()
     return text
 
 def main():
@@ -61,7 +74,7 @@ def main():
     #print("Summary:", summary)
 
     pdf_path = "C:/Users/Admin/Downloads/abdomenscan.pdf"  # Replace with the actual path to your PDF file
-    context = extract_text_from_pdf(pdf_path,0,0)
+    context = extract_text_from_pdf(pdf_path)
     print("Context:", context)
     # prompt = """Generate 5 mulitple choice questions. Take questions from the content only. should contain 4 options each. One correct optoin and 3 relevant but incorrect option. 
     #             Name the options as A, B, C, D.
