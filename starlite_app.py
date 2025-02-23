@@ -106,7 +106,7 @@ async def upload_pdf(request: Request) -> Response:
 def process_pdf(file_path: str) -> str:
     # Placeholder function for processing the PDF
 
-    server_ip = "127.0.0.1"
+    server_ip = "ollama"
     client = LLMChatClient(server_ip)
     pdf_path = file_path  # Replace with the actual path to your PDF file
     context = extract_text_from_pdf(pdf_path)
@@ -125,7 +125,7 @@ app = Starlite(route_handlers=[serve_form, upload_pdf])
 # Run the application
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="myservice", port=8000)
 
 
 
