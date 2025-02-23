@@ -1,5 +1,8 @@
+starlite
+aiofiles
 requests
 regex
 PyMuPDF
 pytesseract
 pdf2image
+markdown
