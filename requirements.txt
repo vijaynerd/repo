@@ -1,5 +1,4 @@
 requests==2.27.1
-json==2.0.9
 regex==2021.11.10
 PyMuPDF==1.18.19
 pytesseract==0.3.8
