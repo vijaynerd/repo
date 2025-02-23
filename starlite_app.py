@@ -7,6 +7,7 @@ import re
 import fitz  # PyMuPDF
 import pytesseract
 from pdf2image import convert_from_path
+import markdown
 
 class LLMChatClient:
     def __init__(self, server_ip, port=11434):
@@ -95,24 +96,28 @@ async def upload_pdf(request: Request) -> Response:
 
     # Pass the saved PDF file to another module (to be written later)
     output = process_pdf(pdf_file.filename)
+    # Convert Markdown to HTML
+    html_output = markdown.markdown(output)
 
-    return Response({"message": "File uploaded successfully", "output": output})
+    return Response(html_output, media_type="text/html")
+
+#    return Response({"message": "File uploaded successfully", "output": output})
 
 def process_pdf(file_path: str) -> str:
     # Placeholder function for processing the PDF
 
     server_ip = "127.0.0.1"
     client = LLMChatClient(server_ip)
-    pdf_path = "C:/Users/Admin/Downloads/abdomenscan.pdf"  # Replace with the actual path to your PDF file
+    pdf_path = file_path  # Replace with the actual path to your PDF file
     context = extract_text_from_pdf(pdf_path)
     print("Context:", context)
-    prompt = "The above text is copy of medical report of scan. Format the report in a way that it looks like a medical report. Finally describe the liver condition of the patient."
+    prompt = "The above text is copy of medical report of scan. Extract Patient name and age followed by doctor name and hospital name and location. Each information should be in a separate line."
    
     summary = client.summarize(context, prompt)
  
     print("Quiz:", summary)
 
-    return f"Processing of {file_path} is complete."
+    return summary
 
 # Create the Starlite application
 app = Starlite(route_handlers=[serve_form, upload_pdf])
