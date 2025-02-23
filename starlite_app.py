@@ -125,7 +125,7 @@ app = Starlite(route_handlers=[serve_form, upload_pdf])
 # Run the application
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="myservice", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
 
