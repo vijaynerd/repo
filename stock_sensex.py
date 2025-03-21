@@ -5,6 +5,76 @@ import matplotlib.pyplot as plt
 import yfinance as yf
 import finance_calculator as fc  # Ensure this module has get_xirr function
 
+
+'''This program simulates a **hybrid investment strategy** involving **monthly investments in Sensex (Indian stock index)** and **arbitrage mutual funds**, dynamically switching allocations between the two based on market conditions. Here's a high-level breakdown:
+
+---
+
+### **Key Objectives**
+1. **Simulate investment growth** over 2001–2023 using:
+   - Direct investments in Sensex.
+   - Investments in an arbitrage fund (assumed fixed 6% return).
+   - A **hybrid strategy** that reallocates between the two based on "market advantage."
+
+2. **Compare performance** of these strategies using **XIRR (extended internal rate of return)**.
+
+3. **Visualize performance** through plots of returns, investments, and rebalancing events.
+
+---
+
+### **Core Components**
+#### 1. **Data Download and Preparation**
+- Fetches historical **Sensex index data** using Yahoo Finance.
+- Prepares idealized growth curves:
+   - Sensex ideal growth at **14% XIRR**.
+   - Arbitrage ideal growth at **6% XIRR**.
+- Calculates **Sensex advantage**: actual Sensex vs idealized 14% growth, as a percentage.
+
+---
+
+#### 2. **Investment Simulation Loop (Daily)**
+For each day in the dataset:
+- Tracks total invested money, Sensex and arbitrage balances.
+- On specified **SIP (Systematic Investment Plan) day**, evaluates Sensex’s performance:
+   - If **Sensex underperforms ideal by >5%**, it recommends **switching funds from arbitrage to Sensex**.
+   - If **Sensex overperforms ideal by >5%**, it recommends **switching funds from Sensex to arbitrage**.
+   - **Swap amount** is capped at 10% (to Sensex) or 30% (to arbitrage) of the respective fund’s balance.
+- Logs these recommendations and updates balances accordingly.
+
+---
+
+#### 3. **Cash Flow and Returns Calculation**
+- Records all **investment outflows (deposits)** and final **inflows (portfolio values)**.
+- Calculates **XIRR** for:
+   - Arbitrage-only investment.
+   - Sensex-only SIP.
+   - Hybrid strategy.
+
+---
+
+#### 4. **Visualization**
+Generates 3 plots:
+1. **Sensex vs Ideal Growth** over time.
+2. **Portfolio Value Comparison**: investment vs current balances.
+3. **Sensex Advantage %**: deviation of real performance from ideal.
+
+---
+
+### **Summary of Output**
+- Investment rebalancing logs.
+- Cash flow details.
+- XIRR for each strategy.
+- Plots to visually compare strategy effectiveness.
+
+---
+
+### **Purpose / Use Case**
+To evaluate how dynamically switching between stock index investments and safer arbitrage funds based on market performance could affect long-term returns compared to static investment strategies.
+
+---
+
+Let me know if you'd like a simplified analogy or deeper dive into a specific part like the rebalancing logic or XIRR calculation!'''
+
 def compound_interest(principal, rate, time):
     """Calculates compound interest."""
     amount = principal * pow((1 + rate / 100), time)
@@ -82,14 +152,14 @@ def hybrid_investment(inv_day):
             print("sensex advantage", ind, sensex_advantage.loc[ind, 'Open'], 
                   "arb_balance", arb_balance, "sensex balance", sensex_balance)
             
-            print(f"ind: {ind}, type: {type(ind)}")
-            print(f"Index contains ind? {ind in sensex_advantage.index}")
+            # print(f"ind: {ind}, type: {type(ind)}")
+            # print(f"Index contains ind? {ind in sensex_advantage.index}")
 
-            print(f"ind: {ind}, type: {type(ind)}")
-            print(f"sensex_advantage.columns: {sensex_advantage.columns}")
-            print(f"sensex_advantage.index.dtype: {sensex_advantage.index.dtype}")
-            print(f"sensex_advantage.loc[ind]:\n{sensex_advantage.loc[ind]}")
-            print(f"sensex_advantage.loc[ind, 'Open']: {sensex_advantage.loc[ind, 'Open']}")
+            # print(f"ind: {ind}, type: {type(ind)}")
+            # print(f"sensex_advantage.columns: {sensex_advantage.columns}")
+            # print(f"sensex_advantage.index.dtype: {sensex_advantage.index.dtype}")
+            # print(f"sensex_advantage.loc[ind]:\n{sensex_advantage.loc[ind]}")
+            # print(f"sensex_advantage.loc[ind, 'Open']: {sensex_advantage.loc[ind, 'Open']}")
             try:
                 val = sensex_advantage.loc[ind, 'Open']
                 if isinstance(val, pd.Series):
