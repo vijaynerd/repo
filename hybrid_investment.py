@@ -13,8 +13,8 @@ locale.setlocale(locale.LC_ALL, 'en_IN.UTF-8')  # Use 'en_IN' locale
 
 # ---------- User Inputs ----------
 lumpsum_investments = [
-    {"date": "2010-01-15", "amount": 1000000},
-    # {"date": "2012-06-10", "amount": 5000000}
+    #{"date": "2010-01-15", "amount": 1000000},
+    #{"date": "2012-06-10", "amount": 5000000}
 ]
 
 sip_amount = 20000
@@ -340,6 +340,7 @@ for i, event_date in enumerate(swap_event_dates):
     marker = '^' if event_type == "To Sensex" else 'v'
     # Add label only once per event_type
     label = event_type if event_type not in labeled_event_types else ""
+    labeled_event_types.add(event_type)
     plt.scatter(event_date, value, color=color, marker=marker, s=50, label=label)
 
 # Labels & Styling
