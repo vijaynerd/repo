@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import math
 import numpy_financial as npf
+from datetime import timedelta
+import locale
+
+locale.setlocale(locale.LC_ALL, 'en_IN.UTF-8')  # Use 'en_IN' locale
+
 
 # ---------- User Inputs ----------
 lumpsum_investments = [
@@ -16,14 +21,15 @@ sip_amount = 10000
 sip_day_of_month = 10
 
 # ---------- Constants ----------
-START_DATE = "2006-01-01"
+START_DATE = "2001-01-01"
 END_DATE = "2025-01-01"
 ARBITRAGE_ANNUAL_RETURN = 0.06  # 6% fixed annual return
-IDEAL_SENSEX_RETURN = 0.10      # 14% ideal return
-SWAP_TO_SENSEX_THRESHOLD = -5   # in %
-SWAP_TO_ARBITRAGE_THRESHOLD = 5
+IDEAL_SENSEX_RETURN = 0.12      # 14% ideal return
+IDEAL_XIRR = 0.12               # 14% ideal return
+SWAP_TO_SENSEX_THRESHOLD = 0   # in %
+SWAP_TO_ARBITRAGE_THRESHOLD = 2
 SWAP_TO_SENSEX_CAP = 0.10       # 10%
-SWAP_TO_ARBITRAGE_CAP = 0.30    # 30%
+SWAP_TO_ARBITRAGE_CAP = 0.10    # 30%
 
 # ---------- Download Sensex Data ----------
 sensex_data = yf.download("^BSESN", start=START_DATE, end=END_DATE)
@@ -70,7 +76,7 @@ def xirr(cash_flows):
     return rate
 
 # Prepare date ranges
-current_date = pd.to_datetime("2010-01-01")
+current_date = pd.to_datetime("2005-01-01")
 end_date = sensex_data.index[-1]
 
 # Pre-calculate arbitrage growth factor
@@ -131,8 +137,54 @@ while current_date <= end_date:
         current_sensex_price = sensex_data.loc[current_date, 'Sensex']
         units = sip_amount / current_sensex_price
         sensex_only_units += units
+        print("Investment to arbitrage today: ", current_date, "arb balance " , arbitrage_balance, "sensex balance" , sensex_units * current_sensex_price , "total balance: " , arbitrage_balance + sensex_units * current_sensex_price, "amount invested:",sip_amount)
+
     else:
         sip_done_today = False
+
+    if(sip_done_today == False):
+        current_date += timedelta(days=1)
+        continue
+    advantage_xirr = 0
+    current_xirr = 0
+    # Within simulation loop:
+    if current_date in sensex_data.index:
+        current_sensex_price = sensex_data.loc[current_date, 'Sensex']
+        current_portfolio_value = arbitrage_balance + sensex_units * current_sensex_price
+
+        # Cash flows till now
+        cash_flows_till_now = [cf for cf in cash_flows_hybrid if cf[0] <= current_date]
+
+        # Add hypothetical liquidation on current date
+        cash_flows_with_liquidation = cash_flows_till_now + [(current_date, current_portfolio_value)]
+
+        # Compute current XIRR
+        try:
+            current_xirr = xirr(cash_flows_with_liquidation)
+        except:
+            current_xirr = 0  # Handle edge cases safely
+
+        # Compute advantage relative to ideal
+        advantage_xirr = ((current_xirr - IDEAL_XIRR) / IDEAL_XIRR) * 100
+
+    ONE_YEAR_AGO = current_date - timedelta(days=365)
+
+    # Filter cash flows from the last 1 year
+    recent_cash_flows = [cf for cf in cash_flows_hybrid if ONE_YEAR_AGO <= cf[0] <= current_date]
+
+    # Add hypothetical liquidation at current date
+    current_portfolio_value = arbitrage_balance + sensex_units * sensex_data.loc[current_date, 'Sensex']
+    recent_cash_flows += [(current_date, current_portfolio_value)]
+
+    # Compute 1-year XIRR
+    try:
+        recent_xirr = xirr(recent_cash_flows)
+        print("recent xirr: ", recent_xirr)
+    except:
+        recent_xirr = 0  # Handle no cash flows or invalid cases
+
+    # # Advantage relative to ideal return
+    # advantage_recent = ((recent_xirr - IDEAL_XIRR) / IDEAL_XIRR) * 100
 
     # Rebalancing Logic
     if current_date in sensex_data.index and sip_done_today:
@@ -140,7 +192,8 @@ while current_date <= end_date:
         advantage = sensex_data.loc[current_date, 'Sensex_Advantage_%']
         current_sensex_price = sensex_data.loc[current_date, 'Sensex']
 
-        if advantage < SWAP_TO_SENSEX_THRESHOLD and arbitrage_balance > 0:
+        #if (advantage < SWAP_TO_SENSEX_THRESHOLD and arbitrage_balance > 0) or advantage_xirr < IDEAL_XIRR:
+        if current_xirr < IDEAL_XIRR:
             # Move from Arbitrage to Sensex
             amount_to_swap = min(arbitrage_balance * SWAP_TO_SENSEX_CAP, arbitrage_balance)
             if amount_to_swap > 0:
@@ -148,13 +201,17 @@ while current_date <= end_date:
                 sensex_units += units
                 arbitrage_balance -= amount_to_swap
                 swap_logs.append(f"{current_date.date()} | Swap {amount_to_swap:.2f} to Sensex | Advantage: {advantage:.2f}%")
-                print("rebalancing to sensex today: ", current_date, sensex_data.loc[current_date, 'Sensex_Advantage_%'],arbitrage_balance,sensex_units)
+                #print("rebalancing to sensex today: ", current_date, sensex_data.loc[current_date, 'Sensex_Advantage_%'],arbitrage_balance,sensex_units)
+                print("Rebalance to Sensex today    : ", current_date, "arb balance " , arbitrage_balance, "sensex balance" , sensex_units * current_sensex_price , "total balance: " , arbitrage_balance + sensex_units * current_sensex_price, "amount swapped:",amount_to_swap)
                 # Log swap events
                 swap_event_dates.append(current_date)
+                current_sensex_price = sensex_data.loc[current_date, 'Sensex']
+                daily_portfolio_value = arbitrage_balance + sensex_units * current_sensex_price
                 swap_event_values.append(daily_portfolio_value)
                 swap_event_types.append("To Sensex")
 
-        elif advantage > SWAP_TO_ARBITRAGE_THRESHOLD and sensex_units > 0:
+        #elif (advantage > SWAP_TO_ARBITRAGE_THRESHOLD and sensex_units > 0) or advantage_xirr > IDEAL_XIRR:
+        elif current_xirr > IDEAL_XIRR:
             # Move from Sensex to Arbitrage
             value_of_sensex = sensex_units * current_sensex_price
             amount_to_swap = min(value_of_sensex * SWAP_TO_ARBITRAGE_CAP, value_of_sensex)
@@ -163,19 +220,14 @@ while current_date <= end_date:
                 sensex_units -= units_to_sell
                 arbitrage_balance += amount_to_swap
                 swap_logs.append(f"{current_date.date()} | Swap {amount_to_swap:.2f} to Arbitrage | Advantage: {advantage:.2f}%")
-                print("rebalancing to arbitrage today: ", current_date, sensex_data.loc[current_date, 'Sensex_Advantage_%'],arbitrage_balance,sensex_units)
+                #print("rebalancing to arbitrage today: ", current_date, sensex_data.loc[current_date, 'Sensex_Advantage_%'],arbitrage_balance,sensex_units)
+                print("Rebalance to arbitrage today    : ", current_date, "arb balance " , arbitrage_balance, "sensex balance" , sensex_units * current_sensex_price , "total balance: " , arbitrage_balance + sensex_units * current_sensex_price, "amount swapped:",amount_to_swap)
                 # Log swap events
                 swap_event_dates.append(current_date)
+                current_sensex_price = sensex_data.loc[current_date, 'Sensex']
+                daily_portfolio_value = arbitrage_balance + sensex_units * current_sensex_price
                 swap_event_values.append(daily_portfolio_value)
                 swap_event_types.append("To Arbitrage")
-
-    if current_date in sensex_data.index:
-        current_sensex_price = sensex_data.loc[current_date, 'Sensex']
-        daily_portfolio_value = arbitrage_balance + sensex_units * current_sensex_price
-        portfolio_values_over_time.append((current_date, daily_portfolio_value))
-        invested_over_time.append((current_date, total_invested))
-
-
 
     # Inside the loop, after rebalancing logic
     if current_date in sensex_data.index:
@@ -218,9 +270,12 @@ xirr_sensex_only = xirr(cash_flows_sensex_only) * 100
 # ---------- Results Summary ----------
 print("----- Investment Summary -----")
 print(f"Total Invested: ₹{total_invested:,.2f}")
-print(f"Final Hybrid Portfolio Value: ₹{final_portfolio_value:,.2f}")
-print(f"Final Sensex Portfolio Value: ₹{final_sensex_only_value:,.2f}")
-print(f"Final Arbitrage Portfolio Value: ₹{final_arbitrage_only_value:,.2f}")
+final_portfolio_value_formated = locale.currency(final_portfolio_value, symbol='₹', grouping=True)
+print(f"Final Hybrid Portfolio Value: {final_portfolio_value_formated}")
+final_sensex_only_value_formated = locale.currency(final_sensex_only_value, symbol='₹', grouping=True)
+print(f"Final Sensex Portfolio Value: {final_sensex_only_value_formated}")
+final_arbitrage_only_value_formated = locale.currency(final_arbitrage_only_value, symbol='₹', grouping=True)
+print(f"Final Arbitrage Portfolio Value: {final_arbitrage_only_value_formated}")
 print(f"XIRR - Hybrid Strategy: {xirr_hybrid:.2f}%")
 print(f"XIRR - Arbitrage Only: {xirr_arbitrage_only:.2f}%")
 print(f"XIRR - Sensex Only (Ideal): {xirr_sensex_only:.2f}%")
@@ -257,13 +312,19 @@ plt.figure(figsize=(14, 7))
 plt.plot(plot_dates, plot_values, label="Hybrid Portfolio Value", color='blue')
 plt.plot(invested_dates, invested_values, label="Total Invested", color='orange', linestyle='--')
 
+
+# Track which event types have been labeled
+labeled_event_types = set()
+
 # Mark swap events
 for i, event_date in enumerate(swap_event_dates):
     value = swap_event_values[i]
     event_type = swap_event_types[i]
     color = 'green' if event_type == "To Sensex" else 'red'
     marker = '^' if event_type == "To Sensex" else 'v'
-    plt.scatter(event_date, value, color=color, marker=marker, s=50, label=event_type if i == 0 or event_type != swap_event_types[i-1] else "")
+    # Add label only once per event_type
+    label = event_type if event_type not in labeled_event_types else ""
+    plt.scatter(event_date, value, color=color, marker=marker, s=50, label=label)
 
 # Labels & Styling
 plt.title("Hybrid Investment Growth with Swaps & Total Invested")
