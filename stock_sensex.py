@@ -95,9 +95,9 @@ def hybrid_investment(inv_day):
     end = '2023-02-08'
     sensex_xirr = 14
     arbitrage_xirr = 6
-    sip_amount = 0
+    sip_amount = 10000
     sip_day = inv_day
-    investments = {pd.Timestamp('2008-01-30'): 30000000}
+    investments = {pd.Timestamp('2001-05-30'): 30000000}
 
     # Download Sensex data
     sensex = yf.download('^BSESN', start=start, end=end)

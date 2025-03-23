@@ -8,8 +8,8 @@ import numpy_financial as npf
 
 # ---------- User Inputs ----------
 lumpsum_investments = [
-    {"date": "2010-01-15", "amount": 100000},
-    {"date": "2012-06-10", "amount": 50000}
+    # {"date": "2010-01-15", "amount": 100000},
+    # {"date": "2012-06-10", "amount": 50000}
 ]
 
 sip_amount = 10000
@@ -19,7 +19,7 @@ sip_day_of_month = 10
 START_DATE = "2006-01-01"
 END_DATE = "2025-01-01"
 ARBITRAGE_ANNUAL_RETURN = 0.06  # 6% fixed annual return
-IDEAL_SENSEX_RETURN = 0.12      # 14% ideal return
+IDEAL_SENSEX_RETURN = 0.10      # 14% ideal return
 SWAP_TO_SENSEX_THRESHOLD = -5   # in %
 SWAP_TO_ARBITRAGE_THRESHOLD = 5
 SWAP_TO_SENSEX_CAP = 0.10       # 10%
@@ -81,6 +81,14 @@ sip_done_today = False
 current_month_year = None
 loop_month_year = None
 current_month_year_sipdone = False
+
+# Initialize tracking list before the loop
+portfolio_values_over_time = []
+invested_over_time = []
+swap_event_dates = []
+swap_event_values = []
+swap_event_types = []  # "To Sensex" or "To Arbitrage"
+
 # Daily simulation loop
 while current_date <= end_date:
     # Grow arbitrage fund daily
@@ -123,7 +131,6 @@ while current_date <= end_date:
         current_sensex_price = sensex_data.loc[current_date, 'Sensex']
         units = sip_amount / current_sensex_price
         sensex_only_units += units
-
     else:
         sip_done_today = False
 
@@ -142,6 +149,10 @@ while current_date <= end_date:
                 arbitrage_balance -= amount_to_swap
                 swap_logs.append(f"{current_date.date()} | Swap {amount_to_swap:.2f} to Sensex | Advantage: {advantage:.2f}%")
                 print("rebalancing to sensex today: ", current_date, sensex_data.loc[current_date, 'Sensex_Advantage_%'],arbitrage_balance,sensex_units)
+                # Log swap events
+                swap_event_dates.append(current_date)
+                swap_event_values.append(daily_portfolio_value)
+                swap_event_types.append("To Sensex")
 
         elif advantage > SWAP_TO_ARBITRAGE_THRESHOLD and sensex_units > 0:
             # Move from Sensex to Arbitrage
@@ -153,6 +164,24 @@ while current_date <= end_date:
                 arbitrage_balance += amount_to_swap
                 swap_logs.append(f"{current_date.date()} | Swap {amount_to_swap:.2f} to Arbitrage | Advantage: {advantage:.2f}%")
                 print("rebalancing to arbitrage today: ", current_date, sensex_data.loc[current_date, 'Sensex_Advantage_%'],arbitrage_balance,sensex_units)
+                # Log swap events
+                swap_event_dates.append(current_date)
+                swap_event_values.append(daily_portfolio_value)
+                swap_event_types.append("To Arbitrage")
+
+    if current_date in sensex_data.index:
+        current_sensex_price = sensex_data.loc[current_date, 'Sensex']
+        daily_portfolio_value = arbitrage_balance + sensex_units * current_sensex_price
+        portfolio_values_over_time.append((current_date, daily_portfolio_value))
+        invested_over_time.append((current_date, total_invested))
+
+
+
+    # Inside the loop, after rebalancing logic
+    if current_date in sensex_data.index:
+        current_sensex_price = sensex_data.loc[current_date, 'Sensex']
+        daily_portfolio_value = arbitrage_balance + sensex_units * current_sensex_price
+        portfolio_values_over_time.append((current_date, daily_portfolio_value))
 
     current_date += timedelta(days=1)
 
@@ -216,14 +245,44 @@ plt.axhline(SWAP_TO_SENSEX_THRESHOLD, color='green', linestyle='--')
 plt.axhline(SWAP_TO_ARBITRAGE_THRESHOLD, color='red', linestyle='--')
 plt.title("Sensex Advantage (%) Over Time")
 
-# Plot 3: Portfolio Value Growth (Simplified)
-dates = [cf[0] for cf in cash_flows_hybrid]
-invested = np.cumsum([-cf[1] for cf in cash_flows_hybrid if cf[1] < 0])
-plt.subplot(3, 1, 3)
-plt.plot(dates[:len(invested)], invested, label="Total Invested")
-plt.axhline(final_portfolio_value, color='purple', label="Final Hybrid Value")
-plt.title("Investment vs Portfolio Value")
-plt.legend()
 
+# Extract data
+plot_dates = [entry[0] for entry in portfolio_values_over_time]
+plot_values = [entry[1] for entry in portfolio_values_over_time]
+invested_dates = [entry[0] for entry in invested_over_time]
+invested_values = [entry[1] for entry in invested_over_time]
+
+# Plot
+plt.figure(figsize=(14, 7))
+plt.plot(plot_dates, plot_values, label="Hybrid Portfolio Value", color='blue')
+plt.plot(invested_dates, invested_values, label="Total Invested", color='orange', linestyle='--')
+
+# Mark swap events
+for i, event_date in enumerate(swap_event_dates):
+    value = swap_event_values[i]
+    event_type = swap_event_types[i]
+    color = 'green' if event_type == "To Sensex" else 'red'
+    marker = '^' if event_type == "To Sensex" else 'v'
+    plt.scatter(event_date, value, color=color, marker=marker, s=50, label=event_type if i == 0 or event_type != swap_event_types[i-1] else "")
+
+# Labels & Styling
+plt.title("Hybrid Investment Growth with Swaps & Total Invested")
+plt.xlabel("Date")
+plt.ylabel("Value (₹)")
+plt.legend()
+plt.grid(True)
 plt.tight_layout()
 plt.show(block=True)
+
+# # Plot 3: Portfolio Value Growth (Simplified)
+# dates = [cf[0] for cf in cash_flows_hybrid]
+# invested = np.cumsum([-cf[1] for cf in cash_flows_hybrid if cf[1] < 0])
+
+# plt.subplot(3, 1, 3)
+# plt.plot(dates[:len(invested)], invested, label="Total Invested")
+# plt.axhline(final_portfolio_value, color='purple', label="Final Hybrid Value")
+# plt.title("Investment vs Portfolio Value")
+# plt.legend()
+
+# plt.tight_layout()
+# plt.show(block=True)
